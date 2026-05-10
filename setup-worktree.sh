@@ -48,13 +48,14 @@ fi
 # Create kas-container-local wrapper if not present
 if [ ! -f "$_YOCTO_DIR/kas-container-local" ]; then
     echo "Creating kas-container-local..."
-    cat > "$_YOCTO_DIR/kas-container-local" << 'EOF'
+    cat > "$_YOCTO_DIR/kas-container-local" << EOF
 #!/bin/bash
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-exec "$SCRIPT_DIR/kas/kas-container" \
-    --runtime-args "-v /mnt/workspace/mt-connect/yocto-shared:/yocto-shared" \
-    --runtime-args "-v /mnt/workspace/mt-connect/yocto-shared/bin/pzstd:/usr/bin/pzstd:ro" \
-    "$@"
+SCRIPT_DIR="\$(cd "\$(dirname "\$0")" && pwd)"
+exec "\$SCRIPT_DIR/kas/kas-container" \\
+    --runtime-args "-v /mnt/workspace/mt-connect/yocto-shared:/yocto-shared" \\
+    --runtime-args "-v /mnt/workspace/mt-connect/yocto-shared/bin/pzstd:/usr/bin/pzstd:ro" \\
+    --runtime-args "-v $_WORKTREE_DIR/imx8-a53:/worktree-src:ro" \\
+    "\$@"
 EOF
     chmod +x "$_YOCTO_DIR/kas-container-local"
 fi
@@ -77,6 +78,27 @@ _EXCLUDE="$_FIRMWARE_DIR/.git/worktrees/$_BRANCH/info/exclude"
 mkdir -p "$(dirname "$_EXCLUDE")"
 grep -qxF "yocto-bsp/kas-container-local" "$_EXCLUDE" 2>/dev/null || echo "yocto-bsp/kas-container-local" >> "$_EXCLUDE"
 grep -qxF "yocto-bsp/local.yaml"          "$_EXCLUDE" 2>/dev/null || echo "yocto-bsp/local.yaml"          >> "$_EXCLUDE"
+
+# ── mt-apps-git devtool workspace setup ─────────────────────────────────────
+# Run once per worktree: creates devtool bbappend and symlinks source to worktree
+_MT_APPS_SRC="$_YOCTO_DIR/build/workspace/sources/mt-apps-git"
+if [ ! -L "$_MT_APPS_SRC" ]; then
+    echo "Setting up mt-apps-git devtool workspace..."
+    if [ ! -d "$_YOCTO_DIR/build/workspace/appends" ] || \
+       ! ls "$_YOCTO_DIR/build/workspace/appends/mt-apps-git"*.bbappend &>/dev/null; then
+        (cd "$_YOCTO_DIR" && "$_YOCTO_DIR/kas-container-local" \
+            --ssh-agent --ssh-dir "$HOME/.ssh" \
+            shell "mt-connect-dev.yaml:local.yaml" \
+            -c "devtool modify mt-apps-git") || true
+    fi
+    if [ -d "$_MT_APPS_SRC" ] && [ ! -L "$_MT_APPS_SRC" ]; then
+        rm -rf "$_MT_APPS_SRC"
+    fi
+    if [ ! -L "$_MT_APPS_SRC" ]; then
+        ln -s /worktree-src "$_MT_APPS_SRC"
+        echo "mt-apps-git workspace: symlinked to $_WORKTREE_DIR/imx8-a53 (as /worktree-src in container)"
+    fi
+fi
 
 # ── Shell setup ─────────────────────────────────────────────────────────────
 # _KAS_WRAPPER and _KAS_YAML persist in the shell so the function can use them.
@@ -107,4 +129,4 @@ echo "  kas-container                              # dev shell"
 echo "  kas-container bitbake multitracks-image-dev  # run build"
 
 # Clean up temp locals — _KAS_WRAPPER and _KAS_YAML intentionally kept
-unset _BRANCH _REPOS_DIR _FIRMWARE_DIR _WORKTREE_DIR _YOCTO_DIR _EXCLUDE _KAS_COMMIT _KAS_YAML
+unset _BRANCH _REPOS_DIR _FIRMWARE_DIR _WORKTREE_DIR _YOCTO_DIR _EXCLUDE _KAS_COMMIT _KAS_YAML _MT_APPS_SRC
