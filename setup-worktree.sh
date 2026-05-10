@@ -79,24 +79,24 @@ mkdir -p "$(dirname "$_EXCLUDE")"
 grep -qxF "yocto-bsp/kas-container-local" "$_EXCLUDE" 2>/dev/null || echo "yocto-bsp/kas-container-local" >> "$_EXCLUDE"
 grep -qxF "yocto-bsp/local.yaml"          "$_EXCLUDE" 2>/dev/null || echo "yocto-bsp/local.yaml"          >> "$_EXCLUDE"
 
-# ── mt-apps-git devtool workspace setup ─────────────────────────────────────
+# ── mt-apps devtool workspace setup ─────────────────────────────────────
 # Run once per worktree: creates devtool bbappend and symlinks source to worktree
-_MT_APPS_SRC="$_YOCTO_DIR/build/workspace/sources/mt-apps-git"
+_MT_APPS_SRC="$_YOCTO_DIR/build/workspace/sources/mt-apps"
 if [ ! -L "$_MT_APPS_SRC" ]; then
-    echo "Setting up mt-apps-git devtool workspace..."
+    echo "Setting up mt-apps devtool workspace..."
     if [ ! -d "$_YOCTO_DIR/build/workspace/appends" ] || \
-       ! ls "$_YOCTO_DIR/build/workspace/appends/mt-apps-git"*.bbappend &>/dev/null; then
+       ! ls "$_YOCTO_DIR/build/workspace/appends/mt-apps"*.bbappend &>/dev/null; then
         (cd "$_YOCTO_DIR" && "$_YOCTO_DIR/kas-container-local" \
             --ssh-agent --ssh-dir "$HOME/.ssh" \
             shell "mt-connect-dev.yaml:local.yaml" \
-            -c "devtool modify mt-apps-git") || true
+            -c "devtool modify mt-apps") || true
     fi
     if [ -d "$_MT_APPS_SRC" ] && [ ! -L "$_MT_APPS_SRC" ]; then
         rm -rf "$_MT_APPS_SRC"
     fi
     if [ ! -L "$_MT_APPS_SRC" ]; then
         ln -s /worktree-src "$_MT_APPS_SRC"
-        echo "mt-apps-git workspace: symlinked to $_WORKTREE_DIR/imx8-a53 (as /worktree-src in container)"
+        echo "mt-apps workspace: symlinked to $_WORKTREE_DIR/imx8-a53 (as /worktree-src in container)"
     fi
 fi
 
