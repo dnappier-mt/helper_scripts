@@ -101,11 +101,10 @@ kas-container bitbake virtual/kernel
 |-------------|---------|
 | `yocto-bsp/kas-container-local` | Wrapper that adds shared cache, pzstd, and `imx8-a53/` mounts to every `kas-container` invocation |
 | `yocto-bsp/local.yaml` | kas yaml overlay — sets `DL_DIR` and `SSTATE_DIR` to `/yocto-shared/` inside the container |
-| `yocto-bsp/build/workspace/appends/mt-apps_*.bbappend` | devtool bbappend — tells bitbake to use `EXTERNALSRC` for mt-apps |
-| `yocto-bsp/build/workspace/sources/mt-apps` → `/worktree-src` | Symlink — resolves inside the container to `imx8-a53/` in your worktree |
+| `yocto-bsp/build/workspace/appends/mt-apps_*.bbappend` | devtool bbappend — sets `EXTERNALSRC = /worktree-src` so bitbake builds from `imx8-a53/` directly |
 
 `kas-container-local` and `local.yaml` are gitignored at the worktree level and never committed.
 
-### How the mt-apps symlink works
+### How the mt-apps devtool workspace works
 
-Inside the container, `imx8-a53/` from your worktree is mounted at `/worktree-src`. The devtool workspace's `sources/mt-apps` symlink points to `/worktree-src`. BitBake follows the symlink and builds directly from your checkout — no manual file copying needed. Any source edit in your worktree's `imx8-a53/` is immediately visible to the next `devtool build mt-apps` or `bitbake mt-apps`.
+`devtool modify -n mt-apps /worktree-src` creates a bbappend that sets `EXTERNALSRC = /worktree-src` without extracting source. Inside the container, `/worktree-src` is a bind mount of `imx8-a53/` from your worktree. Any source edit in `imx8-a53/` is immediately visible to the next `devtool build mt-apps` or `bitbake mt-apps` — no manual file copying needed.
