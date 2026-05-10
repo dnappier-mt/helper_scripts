@@ -45,8 +45,9 @@ if [ ! -f "$_YOCTO_DIR/kas/kas-container" ]; then
     fi
 fi
 
-# Create kas-container-local wrapper if not present
-if [ ! -f "$_YOCTO_DIR/kas-container-local" ]; then
+# Create kas-container-local wrapper if not present or missing worktree-src mount
+if [ ! -f "$_YOCTO_DIR/kas-container-local" ] || \
+   ! grep -q "worktree-src" "$_YOCTO_DIR/kas-container-local"; then
     echo "Creating kas-container-local..."
     cat > "$_YOCTO_DIR/kas-container-local" << EOF
 #!/bin/bash
